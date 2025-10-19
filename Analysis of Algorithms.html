@@ -1,0 +1,547 @@
+Welcome User! <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorting Algorithm Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for smooth bar transitions */
+        .bar {
+            transition: height 0.3s ease, background-color 0.3s ease;
+            display: flex;
+            align-items: center; /* Center horizontally */
+            justify-content: flex-start; /* Align number to the top */
+            flex-direction: column;
+            overflow: hidden; /* Hide overflowing text */
+        }
+        .bar-value {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            font-weight: 500;
+            padding-top: 4px;
+            display: none; /* Hide by default */
+        }
+        /* Show values only when the container has this class */
+        #visualizer-container.show-values .bar-value {
+            display: block;
+        }
+        /* Custom slider track and thumb styles */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #4a5568; /* gray-700 */
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #6366f1; /* indigo-500 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #e0e7ff; /* indigo-100 */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #6366f1; /* indigo-500 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #e0e7ff; /* indigo-100 */
+        }
+        .control-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .control-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .control-btn.active {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex flex-col min-h-screen items-center p-4">
+
+    <!-- Header -->
+    <header class="w-full max-w-7xl text-center mb-4">
+        <h1 class="text-4xl font-bold text-white tracking-tight">Sorting Algorithm Visualizer</h1>
+        <p class="text-indigo-300 mt-1">Watch sorting algorithms in action!</p>
+    </header>
+
+    <!-- Controls -->
+    <div id="controls" class="w-full max-w-7xl bg-gray-800 p-4 rounded-xl shadow-lg mb-4 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-4">
+            <button id="generateArrayBtn" class="control-btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">Generate New Array</button>
+            <div class="flex items-center gap-2">
+                <label for="sizeSlider" class="whitespace-nowrap">Size:</label>
+                <input id="sizeSlider" type="range" min="10" max="150" value="50" class="w-32">
+                <span id="sizeValue" class="font-mono">50</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="speedSlider" class="whitespace-nowrap">Speed:</label>
+                <input id="speedSlider" type="range" min="5" max="500" value="100" class="w-32">
+                <span id="speedValue" class="font-mono">100ms</span>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <button data-algo="bubble" class="control-btn algo-btn bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg">Bubble Sort</button>
+            <button data-algo="selection" class="control-btn algo-btn bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg">Selection Sort</button>
+            <button data-algo="insertion" class="control-btn algo-btn bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg">Insertion Sort</button>
+            <button data-algo="merge" class="control-btn algo-btn bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg">Merge Sort</button>
+            <button data-algo="quick" class="control-btn algo-btn bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg">Quick Sort</button>
+             <button id="stopBtn" class="control-btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md hidden">Stop</button>
+        </div>
+    </div>
+
+    <!-- Main Visualizer Area -->
+    <main id="visualizer-container" class="w-full max-w-7xl h-[60vh] flex justify-center items-end bg-gray-800 p-4 rounded-xl shadow-inner" style="min-height: 400px;"></main>
+
+    <!-- Algorithm Info Area -->
+    <div id="info-container" class="w-full max-w-7xl mt-4 p-4 bg-gray-800 rounded-xl shadow-lg">
+        <h2 id="algo-title" class="text-2xl font-bold text-indigo-300">Select an Algorithm</h2>
+        <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-sm">
+            <div>
+                <h3 class="font-semibold text-gray-400">Time Complexity</h3>
+                <p>Best: <span id="best-case">N/A</span></p>
+                <p>Average: <span id="avg-case">N/A</span></p>
+                <p>Worst: <span id="worst-case">N/A</span></p>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-400">Space Complexity</h3>
+                <p id="space-case">N/A</p>
+            </div>
+            <div class="md:col-span-1">
+                 <p id="algo-description" class="text-gray-400 mt-4 md:mt-0">Description of the algorithm will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM Elements
+        const visualizerContainer = document.getElementById('visualizer-container');
+        const generateArrayBtn = document.getElementById('generateArrayBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const sizeSlider = document.getElementById('sizeSlider');
+        const speedSlider = document.getElementById('speedSlider');
+        const sizeValue = document.getElementById('sizeValue');
+        const speedValue = document.getElementById('speedValue');
+        const algoBtns = document.querySelectorAll('.algo-btn');
+        const controls = document.getElementById('controls');
+
+        // State variables
+        let array = [];
+        let size = 50;
+        let speed = 100;
+        let isSorting = false;
+        let forceStop = false;
+
+        // Colors for visualization
+        const PRIMARY_COLOR = 'bg-indigo-400';
+        const COMPARE_COLOR = 'bg-yellow-400';
+        const SWAP_COLOR = 'bg-red-500';
+        const SORTED_COLOR = 'bg-green-500';
+
+        // Algorithm Information
+        const ALGO_INFO = {
+            bubble: {
+                title: 'Bubble Sort',
+                description: 'A simple sorting algorithm that repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.',
+                complexity: { best: 'O(n)', avg: 'O(n^2)', worst: 'O(n^2)', space: 'O(1)' }
+            },
+            selection: {
+                title: 'Selection Sort',
+                description: 'An in-place comparison sorting algorithm. It divides the input list into two parts: a sorted sublist and an unsorted sublist.',
+                complexity: { best: 'O(n^2)', avg: 'O(n^2)', worst: 'O(n^2)', space: 'O(1)' }
+            },
+            insertion: {
+                title: 'Insertion Sort',
+                description: 'A simple sorting algorithm that builds the final sorted array one item at a time. It is much less efficient on large lists than more advanced algorithms.',
+                complexity: { best: 'O(n)', avg: 'O(n^2)', worst: 'O(n^2)', space: 'O(1)' }
+            },
+            merge: {
+                title: 'Merge Sort',
+                description: 'An efficient, stable, comparison-based sorting algorithm. Most implementations produce a stable sort, which means that the order of equal elements is the same in the input and output.',
+                complexity: { best: 'O(n log n)', avg: 'O(n log n)', worst: 'O(n log n)', space: 'O(n)' }
+            },
+            quick: {
+                title: 'Quick Sort',
+                description: 'An efficient sorting algorithm. When implemented well, it can be about two or three times faster than its main competitors, merge sort and heapsort.',
+                complexity: { best: 'O(n log n)', avg: 'O(n log n)', worst: 'O(n^2)', space: 'O(log n)' }
+            }
+        };
+
+
+        // --- Core Functions ---
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        const generateArray = () => {
+            if (isSorting) return;
+            array = [];
+            visualizerContainer.innerHTML = '';
+            // Conditionally show numbers on bars based on array size
+            if (size <= 60) {
+                visualizerContainer.classList.add('show-values');
+            } else {
+                visualizerContainer.classList.remove('show-values');
+            }
+            for (let i = 0; i < size; i++) {
+                array.push(Math.floor(Math.random() * 95) + 5); // Values from 5 to 100
+            }
+            renderBars();
+        };
+
+        const renderBars = (indicesToUpdate) => {
+            const bars = visualizerContainer.children;
+            const updateAll = !indicesToUpdate;
+
+            for (let i = 0; i < array.length; i++) {
+                if (updateAll) {
+                    const bar = document.createElement('div');
+                    bar.style.height = `${array[i]}%`;
+                    bar.style.width = `${100 / size}%`;
+                    bar.classList.add('bar', PRIMARY_COLOR, 'mx-px');
+                    
+                    const valueSpan = document.createElement('span');
+                    valueSpan.classList.add('bar-value');
+                    valueSpan.textContent = array[i];
+                    bar.appendChild(valueSpan);
+
+                    visualizerContainer.appendChild(bar);
+                } else if (indicesToUpdate.includes(i)) {
+                    if (bars[i]) {
+                       bars[i].style.height = `${array[i]}%`;
+                       bars[i].querySelector('.bar-value').textContent = array[i];
+                    }
+                }
+            }
+        };
+
+        const updateAlgoInfo = (algoKey) => {
+            const info = ALGO_INFO[algoKey];
+            document.getElementById('algo-title').innerText = info.title;
+            document.getElementById('algo-description').innerText = info.description;
+            document.getElementById('best-case').innerText = info.complexity.best;
+            document.getElementById('avg-case').innerText = info.complexity.avg;
+            document.getElementById('worst-case').innerText = info.complexity.worst;
+            document.getElementById('space-case').innerText = info.complexity.space;
+        };
+
+
+        // --- UI Control ---
+
+        const toggleControls = (disabled) => {
+            isSorting = disabled;
+            stopBtn.classList.toggle('hidden', !disabled);
+            generateArrayBtn.disabled = disabled;
+            sizeSlider.disabled = disabled;
+            algoBtns.forEach(btn => btn.disabled = disabled);
+        };
+        
+        const setActiveButton = (activeButton) => {
+            algoBtns.forEach(btn => btn.classList.remove('active'));
+            if(activeButton) {
+                activeButton.classList.add('active');
+            }
+        }
+
+
+        // --- Event Listeners ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            sizeSlider.value = size;
+            speedSlider.value = speed;
+            generateArray();
+        });
+
+        generateArrayBtn.addEventListener('click', generateArray);
+
+        stopBtn.addEventListener('click', () => {
+            forceStop = true;
+        });
+
+        sizeSlider.addEventListener('input', (e) => {
+            if (isSorting) return;
+            size = parseInt(e.target.value);
+            sizeValue.textContent = size;
+            generateArray();
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            speed = 505 - parseInt(e.target.value); // Invert for intuitive control
+            speedValue.textContent = `${parseInt(e.target.value)}ms`;
+        });
+
+        algoBtns.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (isSorting) return;
+                
+                setActiveButton(btn);
+                updateAlgoInfo(btn.dataset.algo);
+                toggleControls(true);
+                forceStop = false;
+
+                // Reset bar colors
+                const bars = visualizerContainer.children;
+                for(let bar of bars){
+                    bar.classList.remove(SORTED_COLOR, COMPARE_COLOR, SWAP_COLOR);
+                    bar.classList.add(PRIMARY_COLOR);
+                }
+
+                switch (btn.dataset.algo) {
+                    case 'bubble': await bubbleSort(); break;
+                    case 'selection': await selectionSort(); break;
+                    case 'insertion': await insertionSort(); break;
+                    case 'merge': await mergeSortHandler(); break;
+                    case 'quick': await quickSortHandler(); break;
+                }
+                
+                if (!forceStop) {
+                    finishAnimation();
+                }
+
+                toggleControls(false);
+                setActiveButton(null);
+            });
+        });
+        
+        const finishAnimation = async () => {
+             const bars = Array.from(visualizerContainer.children);
+             for(let i = 0; i < bars.length; i++) {
+                 if(forceStop) break;
+                 bars[i].classList.remove(PRIMARY_COLOR, COMPARE_COLOR, SWAP_COLOR);
+                 bars[i].classList.add(SORTED_COLOR);
+                 await sleep(5);
+             }
+        }
+
+
+        // --- Sorting Algorithms ---
+        
+        // Helper to change color
+        const setColor = (index, color) => {
+            const bars = visualizerContainer.children;
+            if (bars[index]) {
+                bars[index].classList.remove(PRIMARY_COLOR, COMPARE_COLOR, SWAP_COLOR, SORTED_COLOR);
+                bars[index].classList.add(color);
+            }
+        };
+
+        // Helper to swap two bars visually
+        const swap = (i, j) => {
+            [array[i], array[j]] = [array[j], array[i]];
+            const bars = visualizerContainer.children;
+            if (bars[i] && bars[j]) {
+                bars[i].style.height = `${array[i]}%`;
+                bars[j].style.height = `${array[j]}%`;
+                bars[i].querySelector('.bar-value').textContent = array[i];
+                bars[j].querySelector('.bar-value').textContent = array[j];
+            }
+        };
+
+        async function bubbleSort() {
+            const n = array.length;
+            for (let i = 0; i < n - 1; i++) {
+                for (let j = 0; j < n - i - 1; j++) {
+                    if (forceStop) return;
+                    setColor(j, COMPARE_COLOR);
+                    setColor(j + 1, COMPARE_COLOR);
+                    await sleep(speed);
+
+                    if (array[j] > array[j + 1]) {
+                        setColor(j, SWAP_COLOR);
+                        setColor(j + 1, SWAP_COLOR);
+                        await sleep(speed);
+                        swap(j, j + 1);
+                    }
+                    
+                    setColor(j, PRIMARY_COLOR);
+                    setColor(j + 1, PRIMARY_COLOR);
+                }
+                setColor(n - 1 - i, SORTED_COLOR);
+            }
+             if(!forceStop) setColor(0, SORTED_COLOR);
+        }
+
+        async function selectionSort() {
+            const n = array.length;
+            for (let i = 0; i < n - 1; i++) {
+                let minIdx = i;
+                setColor(i, COMPARE_COLOR);
+                for (let j = i + 1; j < n; j++) {
+                    if (forceStop) return;
+                    setColor(j, COMPARE_COLOR);
+                    await sleep(speed);
+                    if (array[j] < array[minIdx]) {
+                       if(minIdx !== i) setColor(minIdx, PRIMARY_COLOR);
+                       minIdx = j;
+                       setColor(minIdx, SWAP_COLOR);
+                    } else {
+                       setColor(j, PRIMARY_COLOR);
+                    }
+                }
+                
+                if (minIdx !== i) {
+                    await sleep(speed);
+                    swap(i, minIdx);
+                }
+                setColor(minIdx, PRIMARY_COLOR);
+                setColor(i, SORTED_COLOR);
+            }
+            if(!forceStop) setColor(n - 1, SORTED_COLOR);
+        }
+
+        async function insertionSort() {
+            const n = array.length;
+            for (let i = 1; i < n; i++) {
+                 if (forceStop) return;
+                let key = array[i];
+                let j = i - 1;
+                
+                setColor(i, COMPARE_COLOR);
+                await sleep(speed);
+
+                while (j >= 0 && array[j] > key) {
+                    if (forceStop) return;
+                    setColor(j, SWAP_COLOR);
+                    array[j + 1] = array[j];
+                    renderBars([j + 1]);
+                    await sleep(speed);
+                    setColor(j, PRIMARY_COLOR);
+                    j = j - 1;
+                }
+                array[j + 1] = key;
+                renderBars([j + 1]);
+                setColor(i, PRIMARY_COLOR);
+            }
+        }
+        
+        // Merge Sort
+        async function mergeSortHandler() {
+            await mergeSortRecursive(0, array.length - 1);
+        }
+
+        async function mergeSortRecursive(l, r) {
+            if (l >= r || forceStop) return;
+            const m = l + Math.floor((r - l) / 2);
+            await mergeSortRecursive(l, m);
+            await mergeSortRecursive(m + 1, r);
+            await merge(l, m, r);
+        }
+
+        async function merge(l, m, r) {
+            if (forceStop) return;
+            const n1 = m - l + 1;
+            const n2 = r - m;
+            let L = new Array(n1);
+            let R = new Array(n2);
+
+            for (let i = 0; i < n1; i++) L[i] = array[l + i];
+            for (let j = 0; j < n2; j++) R[j] = array[m + 1 + j];
+
+            let i = 0, j = 0, k = l;
+
+            while (i < n1 && j < n2) {
+                if (forceStop) return;
+                setColor(l + i, COMPARE_COLOR);
+                setColor(m + 1 + j, COMPARE_COLOR);
+                await sleep(speed);
+
+                if (L[i] <= R[j]) {
+                    array[k] = L[i];
+                    i++;
+                } else {
+                    array[k] = R[j];
+                    j++;
+                }
+                renderBars([k]);
+                setColor(k, SWAP_COLOR);
+                k++;
+            }
+
+            while (i < n1) {
+                if (forceStop) return;
+                array[k] = L[i];
+                renderBars([k]);
+                setColor(k, SWAP_COLOR);
+                i++; k++;
+                await sleep(speed);
+            }
+            while (j < n2) {
+                if (forceStop) return;
+                array[k] = R[j];
+                renderBars([k]);
+                setColor(k, SWAP_COLOR);
+                j++; k++;
+                await sleep(speed);
+            }
+            
+             for (let idx = l; idx <= r; idx++) {
+                setColor(idx, PRIMARY_COLOR);
+            }
+        }
+
+        // Quick Sort
+        async function quickSortHandler() {
+            await quickSortRecursive(0, array.length - 1);
+        }
+        
+        async function quickSortRecursive(low, high) {
+            if (low < high && !forceStop) {
+                let pi = await partition(low, high);
+                await quickSortRecursive(low, pi - 1);
+                await quickSortRecursive(pi + 1, high);
+            }
+        }
+
+        async function partition(low, high) {
+             if (forceStop) return low;
+            let pivot = array[high];
+            setColor(high, COMPARE_COLOR); // Pivot color
+            let i = low - 1;
+
+            for (let j = low; j < high; j++) {
+                 if (forceStop) return i + 1;
+                setColor(j, COMPARE_COLOR);
+                await sleep(speed);
+
+                if (array[j] < pivot) {
+                    i++;
+                    setColor(i, SWAP_COLOR);
+                    setColor(j, SWAP_COLOR);
+                    await sleep(speed);
+                    swap(i, j);
+                    setColor(i, PRIMARY_COLOR);
+                }
+                 setColor(j, PRIMARY_COLOR);
+            }
+
+            swap(i + 1, high);
+            setColor(high, PRIMARY_COLOR);
+            setColor(i + 1, SORTED_COLOR);
+            await sleep(speed);
+
+            return i + 1;
+        }
+
+    </script>
+</body>
+</html>
